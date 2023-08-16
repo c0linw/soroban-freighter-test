@@ -1,17 +1,38 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png" />
-    <HelloWorld msg="Welcome to Your Vue.js App" />
+    <button @click="testFunc">Check owner of token #0</button>
   </div>
 </template>
 
 <script>
-import HelloWorld from "./components/HelloWorld.vue";
+import sorobanClient from "./soroban.js";
+import { isConnected, getPublicKey, signBlob } from "@stellar/freighter-api";
+import config from "./config.js";
 
 export default {
   name: "App",
-  components: {
-    HelloWorld,
+  data() {
+    return {
+      test: "value",
+    };
+  },
+  async mounted() {
+    sorobanClient.setContractAddress(config.contractAddress);
+    console.log("mounted!");
+  },
+  methods: {
+    async testFunc() {
+      try {
+        console.log("freighter isConnected = ", await isConnected());
+        let pubKey = await getPublicKey();
+        let tx = await sorobanClient.prepareGetOwnerTx(pubKey, 0);
+        console.log(tx);
+        let signed_tx = await signBlob(tx, "FUTURENET", pubKey);
+        console.log(signed_tx);
+      } catch (e) {
+        console.log(e);
+      }
+    },
   },
 };
 </script>
