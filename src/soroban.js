@@ -31,7 +31,8 @@ const sorobanClient = {
         return await prepareTransaction(from, operation);
     },
 
-    sendTransaction: async function (signed_tx) {
+    sendTransactionXDR: async function (signed_tx_xdr) {
+        let signed_tx = SorobanClient.TransactionBuilder.fromXDR(signed_tx_xdr, SorobanClient.Networks.FUTURENET);
         let response = await server.sendTransaction(signed_tx);
         const hash = response.hash;
         let status = response.status;
@@ -42,7 +43,7 @@ const sorobanClient = {
             console.log("Transaction hash:", hash);
             response = await server.getTransaction(hash);
 
-            console.log("the response is ", response);
+            console.log("the response status is ", response.status);
             if (response.status !== "NOT_FOUND") {
                 status = response.status;
             }

@@ -6,7 +6,11 @@
 
 <script>
 import sorobanClient from "./soroban.js";
-import { isConnected, getPublicKey, signBlob } from "@stellar/freighter-api";
+import {
+  isConnected,
+  getPublicKey,
+  signTransaction,
+} from "@stellar/freighter-api";
 import config from "./config.js";
 
 export default {
@@ -26,9 +30,10 @@ export default {
         console.log("freighter isConnected = ", await isConnected());
         let pubKey = await getPublicKey();
         let tx = await sorobanClient.prepareGetOwnerTx(pubKey, 0);
-        console.log(tx);
-        let signed_tx = await signBlob(tx, "FUTURENET", pubKey);
+        let signed_tx = await signTransaction(tx, "FUTURENET", pubKey);
         console.log(signed_tx);
+        let res = await sorobanClient.sendTransactionXDR(signed_tx);
+        console.log(res);
       } catch (e) {
         console.log(e);
       }
