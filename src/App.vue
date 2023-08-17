@@ -1,23 +1,50 @@
 <template>
   <div id="app">
-    <button @click="testFunc">Check owner of token #0</button>
+    <form @submit.prevent="getOwner">
+      <input v-model="input.owner" />
+      <button>Check owner of token</button>
+    </form>
+    {{ output.owner }}
+    <br /><br />
+    <form @submit.prevent="checkDisabled">
+      <input v-model="input.checkDisabled" />
+      <button>Check if token was already split</button>
+    </form>
+    {{ output.checkDisabled }}
+    <br /><br />
+    <form @submit.prevent="split">
+      <label for="splitId">Token ID: </label>
+      <input v-model="input.splitId" id="splitId" /><br />
+      <label for="splitAmount">Amount: </label>
+      <input v-model="input.splitAmount" id="splitAmount" /><br />
+      <label for="splitTo">To (Address): </label>
+      <input v-model="input.splitTo" id="splitTo" /><br />
+      <button>Split token</button>
+    </form>
+    {{ output.split }}
   </div>
 </template>
 
 <script>
 import sorobanClient from "./soroban.js";
-import {
-  isConnected,
-  getPublicKey,
-  signTransaction,
-} from "@stellar/freighter-api";
 import config from "./config.js";
 
 export default {
   name: "App",
   data() {
     return {
-      test: "value",
+      input: {
+        owner: "0",
+        splitId: "0",
+        splitAmount: "0",
+        splitTo: "",
+        checkDisabled: "0",
+      },
+      output: {
+        owner: "",
+        split: "",
+        checkDisabled: "",
+      },
     };
   },
   async mounted() {
@@ -25,17 +52,47 @@ export default {
     console.log("mounted!");
   },
   methods: {
-    async testFunc() {
+    async getOwner() {
       try {
-        console.log("freighter isConnected = ", await isConnected());
-        let pubKey = await getPublicKey();
-        let tx = await sorobanClient.prepareGetOwnerTx(pubKey, 0);
-        let signed_tx = await signTransaction(tx, "FUTURENET", pubKey);
-        console.log(signed_tx);
-        let res = await sorobanClient.sendTransactionXDR(signed_tx);
-        console.log(res);
+        this.output.owner = "Waiting for result...";
+        let id = parseInt(this.input.owner);
+        let addr = await sorobanClient.getOwner(id);
+        console.log(addr.toString());
+        this.output.owner = addr.toString();
       } catch (e) {
         console.log(e);
+        this.output.owner = e;
+      }
+    },
+    async split() {
+      try {
+        this.output.split = "Waiting for result...";
+        let data = [
+          {
+            amount: parseInt(this.input.splitAmount),
+            to: this.input.splitTo,
+          },
+        ];
+        let id = parseInt(this.input.split);
+        let res = await sorobanClient.split(id, data);
+        this.output.split = JSON.stringify(res, (key, value) => {
+          typeof value === "bigint" ? value.toString() : value;
+        });
+      } catch (e) {
+        console.log(e);
+        this.output.split = e;
+      }
+    },
+    async checkDisabled() {
+      try {
+        this.output.checkDisabled = "Waiting for result...";
+        let id = parseInt(this.input.checkDisabled);
+        let isDisabled = await sorobanClient.isDisabled(id);
+        console.log(isDisabled);
+        this.output.checkDisabled = isDisabled.toString();
+      } catch (e) {
+        console.log(e);
+        this.output.checkDisabled = e;
       }
     },
   },
