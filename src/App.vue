@@ -73,11 +73,13 @@ export default {
             to: this.input.splitTo,
           },
         ];
-        let id = parseInt(this.input.split);
+        let id = parseInt(this.input.splitId);
         let res = await sorobanClient.split(id, data);
-        this.output.split = JSON.stringify(res, (key, value) => {
-          typeof value === "bigint" ? value.toString() : value;
-        });
+        let res_str = JSON.stringify(res, (key, value) =>
+          typeof value === "bigint" ? value.toString() : value
+        );
+        console.log(res_str);
+        this.output.split = res_str;
       } catch (e) {
         console.log(e);
         this.output.split = e;

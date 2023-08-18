@@ -41,8 +41,6 @@ const sorobanClient = {
                 ])
             })
         );
-        console.log(id);
-        console.log(JSON.stringify(data));
         const operation = this.contract.call("split", SorobanClient.nativeToScVal(id, { type: "i128" }), split_val);
         let res = await callSmartContract(operation);
         return SorobanClient.scValToNative(res);
