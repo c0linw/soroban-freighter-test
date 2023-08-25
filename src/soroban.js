@@ -56,6 +56,26 @@ const sorobanClient = {
         let res = await callSmartContract(operation);
         return SorobanClient.scValToNative(res);
     },
+    transfer: async function (contractAddr, to, amount) {
+        let contract = new SorobanClient.Contract(contractAddr);
+        let from = await getPublicKey();
+        const operation = contract.call(
+            "transfer",
+            new SorobanClient.Address(from).toScVal(),
+            new SorobanClient.Address(to).toScVal(),
+            SorobanClient.nativeToScVal(amount, { type: "i128" })
+        );
+        let res = await callSmartContract(operation);
+        return SorobanClient.scValToNative(res);
+    },
+    balance: async function (contractAddr, address) {
+        let contract = new SorobanClient.Contract(contractAddr);
+        const operation = contract.call(
+            "balance",
+            new SorobanClient.Address(address).toScVal());
+        let res = await callSmartContract(operation);
+        return SorobanClient.scValToNative(res);
+    }
 };
 
 // returns an ScVal, needs to be converted via fromScVal or ScValToNative

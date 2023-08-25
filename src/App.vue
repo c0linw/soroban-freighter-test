@@ -22,10 +22,29 @@
       <button>Split token</button>
     </form>
     {{ output.split }}
+    <br /><br />
+    <button @click="deploy">Deploy asset</button>
+    <br /><br />
+    <button @click="trust">Trust asset</button>
+    <br /><br />
+    <form @submit.prevent="pay">
+      <input v-model="input.pay" />
+      <button>Pay 1 USDC to address</button>
+    </form>
+    {{ output.pay }}
+    <br /><br />
+    <button @click="payContract">Pay 1 USDC to contract</button>
+    <br /><br />
+    <form @submit.prevent="balance">
+      <input v-model="input.balance" />
+      <button>Get wrapped USDC balance of address</button>
+    </form>
+    {{ output.balance }}
   </div>
 </template>
 
 <script>
+import * as assets from "./asset.js";
 import sorobanClient from "./soroban.js";
 import config from "./config.js";
 
@@ -39,11 +58,15 @@ export default {
         splitAmount: "0",
         splitTo: "",
         checkDisabled: "0",
+        pay: "",
+        balance: "",
       },
       output: {
         owner: "",
         split: "",
         checkDisabled: "",
+        pay: "",
+        balance: "",
       },
     };
   },
@@ -95,6 +118,49 @@ export default {
       } catch (e) {
         console.log(e);
         this.output.checkDisabled = e;
+      }
+    },
+    async deploy() {
+      await assets.createAsset(config.assetCode);
+      await assets.fundAsset(config.assetCode);
+    },
+    async trust() {
+      await assets.trustAsset(config.assetCode);
+    },
+    async pay() {
+      let amount = 1;
+      let decimals = 7;
+      let bigAmount = amount * 10 ** decimals;
+      await assets.payAsset(config.assetCode, this.input.pay, bigAmount);
+    },
+    async payContract() {
+      try {
+        let amount = 1;
+        let decimals = 7;
+        let bigAmount = amount * 10 ** decimals;
+        let res = await sorobanClient.transfer(
+          config.assetContractAddress,
+          config.contractAddress,
+          bigAmount
+        );
+        console.log(res);
+      } catch (e) {
+        console.log(e);
+      }
+    },
+    async balance() {
+      try {
+        let decimals = 7;
+        let res = await sorobanClient.balance(
+          config.assetContractAddress,
+          this.input.balance
+        );
+        console.log(res);
+        let amount = parseInt(res.toString());
+        this.output.balance = (amount / 10 ** decimals).toString();
+      } catch (e) {
+        console.log(e);
+        this.output.balance = e;
       }
     },
   },
