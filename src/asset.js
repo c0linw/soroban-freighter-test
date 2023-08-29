@@ -29,7 +29,7 @@ export async function createAsset(assetCode) {
         .addOperation(
             StellarSdk.Operation.changeTrust({
                 asset: asset,
-                limit: "1000000000",
+                limit: "10000000000",
                 source: distributorKeypair.publicKey(),
             }),
         )
@@ -59,7 +59,7 @@ export async function trustAsset(assetCode) {
         .addOperation(
             StellarSdk.Operation.changeTrust({
                 asset: asset,
-                limit: "1000000000",
+                limit: "10000000000",
                 source: pubKey,
             }),
         )
@@ -76,6 +76,7 @@ export async function trustAsset(assetCode) {
 
 export async function fundAsset(assetCode) {
     const issuerKeypair = StellarSdk.Keypair.fromSecret(config.assetIssuerSecret);
+    const distributorKeypair = StellarSdk.Keypair.fromSecret(config.assetDistributorSecret);
     const asset = new StellarSdk.Asset(assetCode, issuerKeypair.publicKey());
     const account = await server.loadAccount(issuerKeypair.publicKey());
 
@@ -87,7 +88,7 @@ export async function fundAsset(assetCode) {
             StellarSdk.Operation.payment({
                 destination: distributorKeypair.publicKey(),
                 asset: asset,
-                amount: "100000000",
+                amount: "1000000000",
             }),
         )
         // setTimeout is required for a transaction
@@ -96,6 +97,73 @@ export async function fundAsset(assetCode) {
     transaction2.sign(issuerKeypair);
     let res2 = await server.submitTransaction(transaction2);
     console.log(res2);
+}
+
+/**
+ * 
+ * @param {string} assetCode 
+ * @param {string} to 
+ * @param {number} amount 
+ */
+export async function faucetAsset(assetCode, to, amount) {
+    const issuerKeypair = StellarSdk.Keypair.fromSecret(config.assetIssuerSecret);
+    const distributorKeypair = StellarSdk.Keypair.fromSecret(config.assetDistributorSecret);
+    const distributorAccount = await server.loadAccount(distributorKeypair.publicKey());
+    const asset = new StellarSdk.Asset(assetCode, issuerKeypair.publicKey());
+    // First, check to make sure that the destination account exists.
+    // You could skip this, but if the account does not exist, you will be charged
+    // the transaction fee when the transaction fails.
+    server
+        .loadAccount(to)
+        // If the account is not found, surface a nicer error message for logging.
+        .catch(function (error) {
+            if (error instanceof StellarSdk.NotFoundError) {
+                throw new Error("The destination account does not exist!");
+            } else return error;
+        })
+        // If there was no error, load up-to-date information on your account.
+        .then(async function () {
+            if (!await isConnected()) {
+                throw new Error("Freighter wallet is not connected");
+            }
+            return server.loadAccount(await getPublicKey());
+        })
+        .then(async function (sourceAccount) {
+            // Start building the transaction.
+            let transaction = new StellarSdk.TransactionBuilder(distributorAccount, {
+                fee: StellarSdk.BASE_FEE,
+                networkPassphrase: networkPassphrase,
+            })
+                .addOperation(
+                    StellarSdk.Operation.payment({
+                        destination: to,
+                        // Because Stellar allows transaction in many currencies, you must
+                        // specify the asset type. The special "native" asset represents Lumens.
+                        asset: asset,
+                        amount: amount.toString(),
+                    }),
+                )
+                // A memo allows you to add your own metadata to a transaction. It's
+                // optional and does not affect how Stellar treats the transaction.
+                .addMemo(StellarSdk.Memo.text("Test Transaction"))
+                // Wait a maximum of three minutes for the transaction
+                .setTimeout(180)
+                .build();
+            // Sign the transaction to prove you are actually the person sending it.
+            transaction.sign(distributorKeypair);
+
+            // And finally, send it off to Stellar!
+            return server.submitTransaction(transaction);
+        })
+        .then(function (result) {
+            console.log("Success! Results:", result);
+        })
+        .catch(function (error) {
+            console.error("Something went wrong!", error);
+            // If the result is unknown (no response body, timeout etc.) we simply resubmit
+            // already built transaction:
+            // server.submitTransaction(transaction);
+        });
 }
 
 /**

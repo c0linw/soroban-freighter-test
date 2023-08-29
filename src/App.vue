@@ -23,13 +23,18 @@
     </form>
     {{ output.split }}
     <br /><br />
-    <button @click="deploy">Deploy asset</button>
+    <button @click="deploy">Deploy/fund asset</button>
     <br /><br />
     <button @click="trust">Trust asset</button>
     <br /><br />
+    <form @submit.prevent="faucet">
+      <input v-model="input.faucet" />
+      <button>1000000 USDC faucet</button>
+    </form>
+    <br /><br />
     <form @submit.prevent="pay">
       <input v-model="input.pay" />
-      <button>Pay 1 USDC to address</button>
+      <button>Pay 1000000000 USDC to address</button>
     </form>
     {{ output.pay }}
     <br /><br />
@@ -60,6 +65,7 @@ export default {
         checkDisabled: "0",
         pay: "",
         balance: "",
+        faucet: "",
       },
       output: {
         owner: "",
@@ -127,11 +133,11 @@ export default {
     async trust() {
       await assets.trustAsset(config.assetCode);
     },
+    async faucet() {
+      await assets.faucetAsset(config.assetCode, this.input.faucet, 1000000);
+    },
     async pay() {
-      let amount = 1;
-      let decimals = 7;
-      let bigAmount = amount * 10 ** decimals;
-      await assets.payAsset(config.assetCode, this.input.pay, bigAmount);
+      await assets.payAsset(config.assetCode, this.input.pay, 1000000000);
     },
     async payContract() {
       try {
