@@ -1,5 +1,7 @@
 <template>
   <div id="app">
+    <button @click="promptSign">Popup signature prompt</button>
+    <br /><br />
     <form @submit.prevent="getOwner">
       <input v-model="input.owner" />
       <button>Check owner of token</button>
@@ -34,11 +36,14 @@
     <br /><br />
     <form @submit.prevent="pay">
       <input v-model="input.pay" />
-      <button>Pay 1000000000 USDC to address</button>
+      <button>Pay 1000000 USDC to address</button>
     </form>
     {{ output.pay }}
     <br /><br />
-    <button @click="payContract">Pay 1 USDC to contract</button>
+    <form @submit.prevent="payContract">
+      <input v-model="input.payContract" />
+      <button>Pay 1000000 USDC to address via contract</button>
+    </form>
     <br /><br />
     <form @submit.prevent="balance">
       <input v-model="input.balance" />
@@ -66,6 +71,7 @@ export default {
         pay: "",
         balance: "",
         faucet: "",
+        payContract: "",
       },
       output: {
         owner: "",
@@ -126,6 +132,14 @@ export default {
         this.output.checkDisabled = e;
       }
     },
+    async promptSign() {
+      try {
+        await sorobanClient.showSignPrompt();
+        console.log("login successful");
+      } catch (e) {
+        console.log(e);
+      }
+    },
     async deploy() {
       await assets.createAsset(config.assetCode);
       await assets.fundAsset(config.assetCode);
@@ -137,16 +151,16 @@ export default {
       await assets.faucetAsset(config.assetCode, this.input.faucet, 1000000);
     },
     async pay() {
-      await assets.payAsset(config.assetCode, this.input.pay, 1000000000);
+      await assets.payAsset(config.assetCode, this.input.pay, 1000000);
     },
     async payContract() {
       try {
-        let amount = 1;
+        let amount = 1000000;
         let decimals = 7;
         let bigAmount = amount * 10 ** decimals;
         let res = await sorobanClient.transfer(
           config.assetContractAddress,
-          config.contractAddress,
+          this.input.payContract,
           bigAmount
         );
         console.log(res);
